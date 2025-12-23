@@ -1,2 +1,2 @@
 # Python-Osint
-Ce projet est créé uniquement à des fins éducatives et de recherche en cybersécurité. L'auteur n'est pas responsable de toute utilisation illégale ou malveillante de cet outil. Veillez à respecter les lois locales et la vie privée d'autrui
+This project is created for educational and cybersecurity research purposes only. The author is not responsible for any illegal or malicious use of this tool. Please ensure you respect local laws and the privacy of others.
