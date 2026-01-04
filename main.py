@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
 import sys
 import os
 
+# Allow local module imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from core.email_utils import extract_username, extract_domain
@@ -9,7 +9,9 @@ from core.domain import domain_has_mx
 from core.gravatar import gravatar_lookup
 from modules.social_accounts import find_social_accounts
 
+
 def main(email):
+    # Parse email data
     username = extract_username(email)
     domain = extract_domain(email)
 
@@ -17,9 +19,11 @@ def main(email):
     print("USERNAME:", username)
     print("DOMAIN ACTIVE:", domain_has_mx(domain))
 
+    # Gravatar check
     avatar = gravatar_lookup(email)
     print("GRAVATAR:", avatar if avatar else "None")
 
+    # Social accounts discovery
     print("\nFOUND SOCIAL ACCOUNTS:")
     accounts = find_social_accounts(username)
     if accounts:
@@ -28,6 +32,8 @@ def main(email):
     else:
         print("None found")
 
+
+# Script entry point
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python main.py email@example.com")
