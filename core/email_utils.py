@@ -4,3 +4,5 @@ def extract_username(email):
 
 def extract_domain(email):
     return email.split("@")[1]
+
+ 
