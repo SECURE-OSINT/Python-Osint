@@ -15,7 +15,7 @@ def main(email):
 
     print("\nEMAIL:", email)
     print("USERNAME:", username)
-    print("DOMAIN ACTIVE:", domain_active(domain))
+    print("DOMAIN ACTIVE:", domain_has_mx(domain))
 
     avatar = gravatar_lookup(email)
     print("GRAVATAR:", avatar if avatar else "None")
