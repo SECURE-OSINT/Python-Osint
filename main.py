@@ -1,7 +1,7 @@
 import sys
 import os
 
-# Allow local module imports
+# Allow local module  imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from core.email_utils import extract_username, extract_domain
