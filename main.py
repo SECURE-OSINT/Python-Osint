@@ -11,7 +11,7 @@ from modules.social_accounts import find_social_accounts
 
 
 def main(email):
-    # Parse email data
+    # Parse email data 
     username = extract_username(email)
     domain = extract_domain(email)
 
