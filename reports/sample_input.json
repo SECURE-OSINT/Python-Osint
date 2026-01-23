@@ -1,0 +1,40 @@
+{
+  "subject": {
+    "full_name": "Example Person",
+    "email": "example@email.com",
+    "phone": "+33 6 00 00 00 00",
+    "username": "exampleuser"
+  },
+  "findings": [
+    {
+      "category": "Profil public",
+      "category_en": "Public profile",
+      "details": "Bio publique avec projets listes.",
+      "details_en": "Public bio with listed projects.",
+      "source": "https://example.com/profile",
+      "reliability": "medium"
+    }
+  ],
+  "sources": [
+    {
+      "label": "Profil public",
+      "label_en": "Public profile",
+      "url": "https://example.com/profile",
+      "reliability": "medium",
+      "notes": "Page publique fournie par l utilisateur.",
+      "notes_en": "Public page provided by the user."
+    }
+  ],
+  "notes": [
+    {
+      "fr": "Ajouter ici des notes verifiees.",
+      "en": "Add verified notes here."
+    }
+  ],
+  "limitations": [
+    {
+      "fr": "Donnees basees uniquement sur les informations fournies.",
+      "en": "Data is based only on provided information."
+    }
+  ]
+}
