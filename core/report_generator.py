@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from html import escape
 
 from fpdf import FPDF
@@ -42,7 +42,7 @@ def build_report(data):
     sources = _ensure_list(safe_data.get("sources"))
     notes = _ensure_list(safe_data.get("notes"))
     limitations = _ensure_list(safe_data.get("limitations"))
-    generated_at = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     if not limitations:
         limitations = [
@@ -107,7 +107,7 @@ def build_pdf(data):
     sources = _ensure_list(safe_data.get("sources"))
     notes = _ensure_list(safe_data.get("notes"))
     limitations = _ensure_list(safe_data.get("limitations"))
-    generated_at = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     if not limitations:
         limitations = [
@@ -122,6 +122,7 @@ def build_pdf(data):
         ]
 
     pdf = FPDF(orientation="P", unit="mm", format="A4")
+    pdf.set_margins(18, 18, 18)
     pdf.set_auto_page_break(auto=True, margin=18)
 
     _pdf_add_slide(pdf, "Rapport OSINT (donnees fournies) / OSINT Report (provided data)")
@@ -403,6 +404,7 @@ def _pdf_add_slide(pdf, title):
     # EN: Adds a new page with a title.
     pdf.add_page()
     pdf.set_font("Helvetica", "B", 20)
+    _pdf_set_left(pdf)
     pdf.multi_cell(0, 10, _pdf_safe(title))
     pdf.ln(2)
 
@@ -412,6 +414,7 @@ def _pdf_add_meta(pdf, text):
     # EN: Adds a lighter meta line.
     pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(90, 90, 90)
+    _pdf_set_left(pdf)
     pdf.multi_cell(0, 5, _pdf_safe(text))
     pdf.set_text_color(0, 0, 0)
 
@@ -420,7 +423,9 @@ def _pdf_add_bilingual_paragraph(pdf, fr_text, en_text):
     # FR: Ajoute un paragraphe bilingue.
     # EN: Adds a bilingual paragraph.
     pdf.set_font("Helvetica", "", 12)
+    _pdf_set_left(pdf)
     pdf.multi_cell(0, 6, _pdf_safe(f"FR: {fr_text}"))
+    _pdf_set_left(pdf)
     pdf.multi_cell(0, 6, _pdf_safe(f"EN: {en_text}"))
     pdf.ln(1)
 
@@ -457,6 +462,7 @@ def _pdf_add_findings_block(pdf, findings):
         return
     for index, item in enumerate(findings, 1):
         pdf.set_font("Helvetica", "B", 12)
+        _pdf_set_left(pdf)
         pdf.multi_cell(0, 6, _pdf_safe(f"{index}. Constat / Finding"))
         category_fr = _text(item.get("category"))
         category_en = _text(item.get("category_en"))
@@ -477,6 +483,7 @@ def _pdf_add_sources_block(pdf, sources):
         return
     for index, item in enumerate(sources, 1):
         pdf.set_font("Helvetica", "B", 12)
+        _pdf_set_left(pdf)
         pdf.multi_cell(0, 6, _pdf_safe(f"{index}. Source"))
         label_fr = _text(item.get("label"))
         label_en = _text(item.get("label_en"))
@@ -495,24 +502,30 @@ def _pdf_add_bilingual_pair(pdf, label, fr_text, en_text):
     fr_value = fr_text or "information non fournie"
     en_value = en_text or "translation not provided"
     pdf.set_font("Helvetica", "B", 11)
+    _pdf_set_left(pdf)
     pdf.multi_cell(0, 6, _pdf_safe(label))
     pdf.set_font("Helvetica", "", 11)
+    _pdf_set_left(pdf)
     pdf.multi_cell(0, 6, _pdf_safe(f"FR: {fr_value}"))
+    _pdf_set_left(pdf)
     pdf.multi_cell(0, 6, _pdf_safe(f"EN: {en_value}"))
 
 
 def _pdf_add_kv_line(pdf, label, value):
     pdf.set_font("Helvetica", "", 11)
+    _pdf_set_left(pdf)
     pdf.multi_cell(0, 6, _pdf_safe(f"{label}: {value}"))
 
 
 def _pdf_add_bullet(pdf, text):
     pdf.set_font("Helvetica", "", 12)
+    _pdf_set_left(pdf)
     pdf.multi_cell(0, 6, _pdf_safe(f"- {text}"))
 
 
 def _pdf_add_placeholder(pdf, message):
     pdf.set_font("Helvetica", "", 12)
+    _pdf_set_left(pdf)
     pdf.multi_cell(0, 6, _pdf_safe(message))
 
 
@@ -521,3 +534,9 @@ def _pdf_safe(value):
     # EN: Ensures Latin-1 compatible output for FPDF.
     text = _text(value)
     return text.encode("latin-1", "replace").decode("latin-1")
+
+
+def _pdf_set_left(pdf):
+    # FR: Repositionne le curseur a la marge gauche.
+    # EN: Resets the cursor to the left margin.
+    pdf.set_x(pdf.l_margin)
