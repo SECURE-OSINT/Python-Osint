@@ -12,6 +12,10 @@ Generate a report from a JSON input file:
 
 python main.py --input reports/sample_input.json --output reports/report.html
 
+Generate a PDF report (output format auto-detected):
+
+python main.py --input reports/sample_input.json --output reports/report.pdf
+
 Generate a report from CLI fields only:
 
 python main.py --full-name "Example Person" --email example@email.com --phone "+33 6 00 00 00 00" --username exampleuser
@@ -24,7 +28,7 @@ python main.py \
   --note "Note en francais|Note in English" \
   --limitation "Donnees basees sur les informations fournies|Data is based on provided information"
 
-The output is an HTML report with a slide-like layout. You can open it in a browser and export it to PDF or import it into presentation tools.
+The output is an HTML or PDF report with a slide-like layout. PDF generation uses fpdf2.
 
 ## Input format (JSON)
 

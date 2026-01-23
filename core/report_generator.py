@@ -3,6 +3,8 @@ import os
 from datetime import datetime
 from html import escape
 
+from fpdf import FPDF
+
 ALLOWED_RELIABILITY = {"low", "medium", "high", "unknown"}
 
 
@@ -21,6 +23,14 @@ def write_report(path, html):
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     with open(path, "w", encoding="utf-8") as handle:
         handle.write(html)
+
+
+def write_pdf_report(path, data):
+    # FR: Genere un rapport PDF et l ecrit sur disque.
+    # EN: Generates a PDF report and writes it to disk.
+    pdf = build_pdf(data)
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    pdf.output(path)
 
 
 def build_report(data):
@@ -86,6 +96,63 @@ def build_report(data):
     ]
 
     return _wrap_html("".join(slides))
+
+
+def build_pdf(data):
+    # FR: Construit un rapport PDF avec des pages type slides.
+    # EN: Builds a PDF report with slide-like pages.
+    safe_data = data if isinstance(data, dict) else {}
+    subject = safe_data.get("subject") or {}
+    findings = _ensure_list(safe_data.get("findings"))
+    sources = _ensure_list(safe_data.get("sources"))
+    notes = _ensure_list(safe_data.get("notes"))
+    limitations = _ensure_list(safe_data.get("limitations"))
+    generated_at = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+
+    if not limitations:
+        limitations = [
+            {
+                "fr": "Donnees basees uniquement sur les informations fournies.",
+                "en": "Data is based only on provided information.",
+            },
+            {
+                "fr": "Aucune collecte automatique n a ete effectuee.",
+                "en": "No automated collection was performed.",
+            },
+        ]
+
+    pdf = FPDF(orientation="P", unit="mm", format="A4")
+    pdf.set_auto_page_break(auto=True, margin=18)
+
+    _pdf_add_slide(pdf, "Rapport OSINT (donnees fournies) / OSINT Report (provided data)")
+    _pdf_add_bilingual_paragraph(
+        pdf,
+        "Rapport genere pour un usage autorise et documente.",
+        "Report generated for authorized, documented use.",
+    )
+    _pdf_add_bilingual_paragraph(
+        pdf,
+        "Chaque element doit etre confirme par des sources fiables.",
+        "Each element must be confirmed with reliable sources.",
+    )
+    _pdf_add_meta(pdf, f"Generated: {generated_at}")
+
+    _pdf_add_slide(pdf, "Identifiants / Identifiers")
+    _pdf_add_subject_block(pdf, subject)
+
+    _pdf_add_slide(pdf, "Notes / Notes")
+    _pdf_add_notes_block(pdf, notes)
+
+    _pdf_add_slide(pdf, "Constats / Findings")
+    _pdf_add_findings_block(pdf, findings)
+
+    _pdf_add_slide(pdf, "Sources / Sources")
+    _pdf_add_sources_block(pdf, sources)
+
+    _pdf_add_slide(pdf, "Limites / Limitations")
+    _pdf_add_notes_block(pdf, limitations)
+
+    return pdf
 
 
 def _wrap_html(slides_html):
@@ -329,3 +396,128 @@ def _text(value):
     if value is None:
         return ""
     return str(value).strip()
+
+
+def _pdf_add_slide(pdf, title):
+    # FR: Ajoute une nouvelle page avec un titre.
+    # EN: Adds a new page with a title.
+    pdf.add_page()
+    pdf.set_font("Helvetica", "B", 20)
+    pdf.multi_cell(0, 10, _pdf_safe(title))
+    pdf.ln(2)
+
+
+def _pdf_add_meta(pdf, text):
+    # FR: Ajoute une ligne meta plus discrete.
+    # EN: Adds a lighter meta line.
+    pdf.set_font("Helvetica", "", 10)
+    pdf.set_text_color(90, 90, 90)
+    pdf.multi_cell(0, 5, _pdf_safe(text))
+    pdf.set_text_color(0, 0, 0)
+
+
+def _pdf_add_bilingual_paragraph(pdf, fr_text, en_text):
+    # FR: Ajoute un paragraphe bilingue.
+    # EN: Adds a bilingual paragraph.
+    pdf.set_font("Helvetica", "", 12)
+    pdf.multi_cell(0, 6, _pdf_safe(f"FR: {fr_text}"))
+    pdf.multi_cell(0, 6, _pdf_safe(f"EN: {en_text}"))
+    pdf.ln(1)
+
+
+def _pdf_add_subject_block(pdf, subject):
+    rows = [
+        ("Nom complet / Full name", _text(subject.get("full_name"))),
+        ("Email / Email", _text(subject.get("email"))),
+        ("Telephone / Phone", _text(subject.get("phone"))),
+        ("Pseudo / Username", _text(subject.get("username"))),
+    ]
+    visible = [(label, value) for label, value in rows if value]
+    if not visible:
+        _pdf_add_placeholder(pdf, "Aucune donnee fournie / No data provided.")
+        return
+    for label, value in visible:
+        _pdf_add_bullet(pdf, f"{label}: {value}")
+
+
+def _pdf_add_notes_block(pdf, items):
+    if not items:
+        _pdf_add_placeholder(pdf, "Aucune note fournie / No notes provided.")
+        return
+    for item in items:
+        fr_text, en_text = _coerce_bilingual_item(item)
+        _pdf_add_bullet(pdf, f"FR: {fr_text}")
+        _pdf_add_bullet(pdf, f"EN: {en_text}")
+        pdf.ln(1)
+
+
+def _pdf_add_findings_block(pdf, findings):
+    if not findings:
+        _pdf_add_placeholder(pdf, "Aucun constat fourni / No findings provided.")
+        return
+    for index, item in enumerate(findings, 1):
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.multi_cell(0, 6, _pdf_safe(f"{index}. Constat / Finding"))
+        category_fr = _text(item.get("category"))
+        category_en = _text(item.get("category_en"))
+        details_fr = _text(item.get("details"))
+        details_en = _text(item.get("details_en"))
+        source = _text(item.get("source"))
+        reliability = _normalize_reliability(item.get("reliability"))
+        _pdf_add_bilingual_pair(pdf, "Categorie / Category", category_fr, category_en)
+        _pdf_add_bilingual_pair(pdf, "Details / Details", details_fr, details_en)
+        _pdf_add_kv_line(pdf, "Source / Source", source or "n/a")
+        _pdf_add_kv_line(pdf, "Fiabilite / Reliability", reliability)
+        pdf.ln(2)
+
+
+def _pdf_add_sources_block(pdf, sources):
+    if not sources:
+        _pdf_add_placeholder(pdf, "Aucune source fournie / No sources provided.")
+        return
+    for index, item in enumerate(sources, 1):
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.multi_cell(0, 6, _pdf_safe(f"{index}. Source"))
+        label_fr = _text(item.get("label"))
+        label_en = _text(item.get("label_en"))
+        url = _text(item.get("url"))
+        reliability = _normalize_reliability(item.get("reliability"))
+        notes_fr = _text(item.get("notes"))
+        notes_en = _text(item.get("notes_en"))
+        _pdf_add_bilingual_pair(pdf, "Label / Label", label_fr, label_en)
+        _pdf_add_kv_line(pdf, "URL / URL", url or "n/a")
+        _pdf_add_kv_line(pdf, "Fiabilite / Reliability", reliability)
+        _pdf_add_bilingual_pair(pdf, "Notes / Notes", notes_fr, notes_en)
+        pdf.ln(2)
+
+
+def _pdf_add_bilingual_pair(pdf, label, fr_text, en_text):
+    fr_value = fr_text or "information non fournie"
+    en_value = en_text or "translation not provided"
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.multi_cell(0, 6, _pdf_safe(label))
+    pdf.set_font("Helvetica", "", 11)
+    pdf.multi_cell(0, 6, _pdf_safe(f"FR: {fr_value}"))
+    pdf.multi_cell(0, 6, _pdf_safe(f"EN: {en_value}"))
+
+
+def _pdf_add_kv_line(pdf, label, value):
+    pdf.set_font("Helvetica", "", 11)
+    pdf.multi_cell(0, 6, _pdf_safe(f"{label}: {value}"))
+
+
+def _pdf_add_bullet(pdf, text):
+    pdf.set_font("Helvetica", "", 12)
+    pdf.multi_cell(0, 6, _pdf_safe(f"- {text}"))
+
+
+def _pdf_add_placeholder(pdf, message):
+    pdf.set_font("Helvetica", "", 12)
+    pdf.multi_cell(0, 6, _pdf_safe(message))
+
+
+def _pdf_safe(value):
+    # FR: Assure une sortie compatible Latin-1 pour FPDF.
+    # EN: Ensures Latin-1 compatible output for FPDF.
+    text = _text(value)
+    return text.encode("latin-1", "replace").decode("latin-1")

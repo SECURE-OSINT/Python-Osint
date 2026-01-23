@@ -5,7 +5,7 @@ import sys
 # Allow local module imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from core.report_generator import build_report, load_input, write_report
+from core.report_generator import build_report, load_input, write_pdf_report, write_report
 
 
 def _parse_pipe_fields(raw, expected_parts):
@@ -98,6 +98,17 @@ def _build_data(args):
     return data
 
 
+def _resolve_output_format(args):
+    # FR: Determine le format final selon l extension ou l option.
+    # EN: Determines the final format from extension or flag.
+    if args.format:
+        return args.format
+    output = (args.output or "").lower()
+    if output.endswith(".pdf"):
+        return "pdf"
+    return "html"
+
+
 def _parse_args():
     parser = argparse.ArgumentParser(
         description=(
@@ -108,7 +119,12 @@ def _parse_args():
     parser.add_argument(
         "--output",
         default="reports/report.html",
-        help="Output HTML report path (default: reports/report.html).",
+        help="Output report path (default: reports/report.html).",
+    )
+    parser.add_argument(
+        "--format",
+        choices=["html", "pdf"],
+        help="Output format override (html or pdf).",
     )
     parser.add_argument("--full-name", help="Subject full name.")
     parser.add_argument("--email", help="Subject email address.")
@@ -142,8 +158,12 @@ def _parse_args():
 def main():
     args = _parse_args()
     data = _build_data(args)
-    html = build_report(data)
-    write_report(args.output, html)
+    output_format = _resolve_output_format(args)
+    if output_format == "pdf":
+        write_pdf_report(args.output, data)
+    else:
+        html = build_report(data)
+        write_report(args.output, html)
     print(f"Report written to: {args.output}")
     print("FR: Aucune collecte automatique n a ete effectuee.")
     print("EN: No automated collection was performed.")
